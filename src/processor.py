@@ -118,8 +118,7 @@ def processar_arquivos():
         'razao_social': 'RazaoSocial'
     }
 
-    # Tratamento especial para Registro ANS: pode vir como 'registro_ans' (após normalizar)
-    # ou como 'reg_ans' em casos antigos. Normalizamos para 'RegistroANS'.
+
     if 'registro_ans' in df_final.columns:
         df_final.rename(columns={'registro_ans': 'RegistroANS'}, inplace=True)
     elif 'reg_ans' in df_final.columns:

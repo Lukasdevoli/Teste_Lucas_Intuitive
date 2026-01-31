@@ -110,15 +110,23 @@ def processar_arquivos():
         df_final['valor'] = pd.to_numeric(df_final['valor'], errors='coerce')
  
     colunas_finais = {
-        'reg_ans': 'RegistroANS', 
         'valor': 'Valor Despesas',
         'ano': 'Ano',
         'trimestre': 'Trimestre',
 
         'cnpj': 'CNPJ',
-        'razao_social': 'RazaoSocial' 
+        'razao_social': 'RazaoSocial'
     }
-    
+
+    # Tratamento especial para Registro ANS: pode vir como 'registro_ans' (após normalizar)
+    # ou como 'reg_ans' em casos antigos. Normalizamos para 'RegistroANS'.
+    if 'registro_ans' in df_final.columns:
+        df_final.rename(columns={'registro_ans': 'RegistroANS'}, inplace=True)
+    elif 'reg_ans' in df_final.columns:
+        df_final.rename(columns={'reg_ans': 'RegistroANS'}, inplace=True)
+    else:
+        df_final['RegistroANS'] = None
+
     for col_old, col_new in colunas_finais.items():
         if col_old not in df_final.columns:
             df_final[col_new] = None # Placeholder

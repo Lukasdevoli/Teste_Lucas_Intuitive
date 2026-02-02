@@ -6,7 +6,7 @@ import os
 app = Flask(__name__)
 CORS(app)
 
-DB_PATH = os.path.join(os.getcwd(), "data/intuitive_care_db")
+DB_PATH = os.path.join(os.getcwd(), "data/intuitive_care.db")  # usar arquivo .db existente
 
 @app.route('/')
 def home():
@@ -36,22 +36,23 @@ def list_operadoras():
 
         conn = get_db_connection()
 
-        query = "SELECT * FROM operadoras WHERE 1=1"
+        query = "SELECT * FROM operadoras WHERE 1=1 "
         params = []
 
         if search:
-            query += "AND (razao_social LIKE ? OR cnpj LIKE?)"
+            query += "AND (razao_social LIKE ? OR cnpj LIKE ?) "
             term = f"%{search}%"
             params.extend([term, term])
 
-        
-        count_query = f"SELECT COUNT(*) FROM ([{query}])"
-        total = conn.execute(count_query, params).fetchone([0])
+        # count without limit/offset
+        count_query = f"SELECT COUNT(*) FROM ({query})"
+        total = conn.execute(count_query, params).fetchone()[0]
 
+        # add pagination
         query += "LIMIT ? OFFSET ?"
-        params.extend([limit, offset])
+        params_with_pagination = params + [limit, offset]
 
-        cursor = conn.execute(query)
+        cursor = conn.execute(query, params_with_pagination)
         rows = cursor.fetchall()
         conn.close()
 

@@ -4,12 +4,10 @@ import os
 import zipfile
 import io
 import re
-
-# Para ignorar o aviso de segurança
 import urllib3
+
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# Configurações
 URL_CADASTRO = "https://dadosabertos.ans.gov.br/FTP/PDA/operadoras_de_plano_de_saude_ativas/"
 FILE_CONSOLIDADO = "data/processed/consolidado.csv"
 DIR_PROCESSED = "data/processed"
@@ -118,7 +116,6 @@ def main():
             mapa[col] = 'RazaoSocial'
         elif col == 'uf':
             mapa[col] = 'UF'
-        # --- CORREÇÃO AQUI: Adicionado mapeamento da Modalidade ---
         elif 'modalidade' in col:
             mapa[col] = 'Modalidade'
             
@@ -150,7 +147,7 @@ def main():
     
     df_final['RazaoSocial'] = df_final['RazaoSocial'].fillna("DESCONHECIDO")
     df_final['UF'] = df_final['UF'].fillna("IND")
-    # Previne erro se modalidade não vier
+    
     if 'Modalidade' not in df_final.columns:
         df_final['Modalidade'] = 'Desconhecida'
     else:

@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Intuitive Care - Teste Lucas</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; }
+        .card { box-shadow: 0 4px 6px rgba(0,0,0,0.1); border: none; margin-bottom: 20px; }
+        .loading-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.8); z-index: 9999;
+            display: flex; justify-content: center; align-items: center;
+        }
+    </style>
+</head>
+<body>
+
+<div id="app" class="container py-5">
+    
+    <div v-if="loading" class="loading-overlay">
+        <div class="spinner-border text-primary" role="status"></div>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 text-primary">Intuitive Care <span class="text-muted fs-6">| Dashboard</span></h1>
+        <span class="badge bg-success" v-if="stats.total_geral">Dados Carregados</span>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card p-3">
+                <h6 class="text-muted">Despesa Total Analisada</h6>
+                <h3 class="text-primary">{{ formatMoney(stats.total_geral) }}</h3>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card p-3">
+                <h6 class="text-muted">Média Trimestral</h6>
+                <h3>{{ formatMoney(stats.media_trimestral) }}</h3>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card p-3">
+                <h6 class="text-muted">Total de Operadoras</h6>
+                <h3>{{ pagination.total }}</h3>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card p-4">
+                <h5>Distribuição de Despesas por Top Operadoras</h5>
+                <div style="height: 300px;">
+                    <canvas id="myChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card p-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="mb-0">Lista de Operadoras</h5>
+            <div class="input-group w-50">
+                <input type="text" class="form-control" placeholder="Buscar por Razão Social ou CNPJ..." 
+                       v-model="searchTerm" @keyup.enter="buscarOperadoras">
+                <button class="btn btn-primary" @click="buscarOperadoras">Buscar</button>
+            </div>
+        </div>
+
+        <table class="table table-hover">
+            <thead class="table-light">
+                <tr>
+                    <th>Registro ANS</th>
+                    <th>CNPJ</th>
+                    <th>Razão Social</th>
+                    <th>UF</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr v-for="op in operadoras" :key="op.registro_ans">
+                    <td>{{ op.registro_ans }}</td>
+                    <td>{{ op.cnpj }}</td>
+                    <td>{{ op.razao_social }}</td>
+                    <td>{{ op.uf }}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-info" @click="verDetalhes(op)">
+                            Ver Despesas
+                        </button>
+                    </td>
+                </tr>
+                <tr v-if="operadoras.length === 0">
+                    <td colspan="5" class="text-center text-muted py-4">Nenhuma operadora encontrada.</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <nav v-if="pagination.total_pages > 1">
+            <ul class="pagination justify-content-center">
+                <li class="page-item" :class="{ disabled: pagination.page === 1 }">
+                    <button class="page-link" @click="mudarPagina(pagination.page - 1)">Anterior</button>
+                </li>
+                <li class="page-item disabled">
+                    <span class="page-link">Página {{ pagination.page }} de {{ pagination.total_pages }}</span>
+                </li>
+                <li class="page-item" :class="{ disabled: pagination.page >= pagination.total_pages }">
+                    <button class="page-link" @click="mudarPagina(pagination.page + 1)">Próxima</button>
+                </li>
+            </ul>
+        </nav>
+    </div>
+
+    <div v-if="modalAberto" class="modal fade show" style="display: block; background: rgba(0,0,0,0.5)">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">{{ operadoraSelecionada.razao_social }}</h5>
+                    <button type="button" class="btn-close" @click="fecharModal"></button>
+                </div>
+                <div class="modal-body">
+                    <h6>Histórico de Despesas com Eventos</h6>
+                    <table class="table table-sm table-bordered mt-2">
+                        <thead>
+                            <tr>
+                                <th>Ano</th>
+                                <th>Trimestre</th>
+                                <th>Valor</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="(hist, index) in historicoDespesas" :key="index">
+                                <td>{{ hist.ano }}</td>
+                                <td>{{ hist.trimestre }}º</td>
+                                <td>{{ formatMoney(hist.valor_despesas) }}</td>
+                            </tr>
+                            <tr v-if="historicoDespesas.length === 0">
+                                <td colspan="3" class="text-center">Sem registros de despesas.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @click="fecharModal">Fechar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    const { createApp } = Vue;
+    const API_URL = 'http://localhost:5000/api';
+
+    createApp({
+        data() {
+            return {
+                loading: false,
+                stats: { total_geral: 0, media_trimestral: 0, top_operadoras: [] },
+                operadoras: [],
+                pagination: { page: 1, limit: 10, total: 0, total_pages: 0 },
+                searchTerm: '',
+                modalAberto: false,
+                operadoraSelecionada: {},
+                historicoDespesas: [],
+                chartInstance: null
+            }
+        },
+        methods: {
+            formatMoney(value) {
+                if (!value) return 'R$ 0,00';
+                return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+            },
+            async carregarStats() {
+                try {
+                    const res = await fetch(`${API_URL}/estatisticas`);
+                    const data = await res.json();
+                    this.stats = data;
+                    this.renderChart();
+                } catch (error) {
+                    console.error("Erro ao carregar estatísticas", error);
+                }
+            },
+            async buscarOperadoras() {
+                this.loading = true;
+                try {
+                    // Resetar página se for uma nova busca
+                    const url = `${API_URL}/operadoras?page=${this.pagination.page}&limit=10&search=${this.searchTerm}`;
+                    const res = await fetch(url);
+                    const json = await res.json();
+                    
+                    this.operadoras = json.data;
+                    this.pagination = json.meta;
+                } catch (error) {
+                    alert("Erro ao conectar com o servidor. Verifique se o Backend está rodando.");
+                } finally {
+                    this.loading = false;
+                }
+            },
+            mudarPagina(novaPagina) {
+                if (novaPagina > 0 && novaPagina <= this.pagination.total_pages) {
+                    this.pagination.page = novaPagina;
+                    this.buscarOperadoras();
+                }
+            },
+            async verDetalhes(operadora) {
+                this.operadoraSelecionada = operadora;
+                this.loading = true;
+                try {
+                    const res = await fetch(`${API_URL}/operadoras/${operadora.registro_ans}/despesas`);
+                    this.historicoDespesas = await res.json();
+                    this.modalAberto = true;
+                } catch (error) {
+                    alert("Erro ao carregar detalhes.");
+                } finally {
+                    this.loading = false;
+                }
+            },
+            fecharModal() {
+                this.modalAberto = false;
+            },
+            renderChart() {
+                const ctx = document.getElementById('myChart');
+                if (this.chartInstance) this.chartInstance.destroy();
+
+                const labels = this.stats.top_operadoras.map(op => op.razao_social.substring(0, 20) + '...');
+                const values = this.stats.top_operadoras.map(op => op.total);
+
+                this.chartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Total de Despesas (R$)',
+                            data: values,
+                            backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: { y: { beginAtZero: true } }
+                    }
+                });
+            }
+        },
+        mounted() {
+            this.carregarStats();
+            this.buscarOperadoras();
+        }
+    }).mount('#app');
+</script>
+</body>
+</html>

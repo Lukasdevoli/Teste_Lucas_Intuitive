@@ -69,11 +69,13 @@ python src/api/app.py
 
 ### Frontend
 
-Abra o arquivo abaixo diretamente no navegador:
+O frontend pode ser executado utilizando a extensão **Live Server** do VS Code.
 
-```
-src/frontend/index.html
-```
+1. Abra a pasta `src/frontend` no VS Code  
+2. Clique com o botão direito no `index.html`  
+3. Selecione **"Open with Live Server"**
+
+A aplicação será aberta automaticamente no navegador.
 
 ---
 

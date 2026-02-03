@@ -9,17 +9,36 @@ RAW_DIR = "data/raw"
 PROCESSED_DIR = "data/processed"
 
 def normalizar_colunas(df):
-    
     df.columns = [col.strip().lower() for col in df.columns]
     
     mapa_colunas = {
+    
         'reg_ans': 'registro_ans',
+        'registro_ans': 'registro_ans',
+        'cd_operadora': 'registro_ans',
+    
         'cd_conta_contabil': 'conta',
+        'cd_conta': 'conta',
+        'conta': 'conta',
+        
         'vl_saldo_final': 'valor',
+        'vl_saldo_inicial': 'valor_inicial', 
+        'saldo_final': 'valor',
+        'valor': 'valor',
+        'vl_saldo': 'valor',
+        
         'descricao': 'descricao',
+        'ds_conta': 'descricao',
+        'nm_conta_contabil': 'descricao'
     }
 
+    
     df.rename(columns=mapa_colunas, inplace=True)
+    
+    
+    if 'valor' not in df.columns:
+        print(f"ALERTA: Coluna de VALOR não encontrada! Colunas disponíveis: {list(df.columns)}")
+        
     return df
 
 
@@ -76,7 +95,7 @@ def processar_arquivos():
                         sep=';', 
                         encoding='latin1', 
                         dtype=str, 
-                        on_bad_lines='skip' # Pula linhas quebradas
+                        on_bad_lines='skip'
                     )
                     
                     df = normalizar_colunas(df)
@@ -84,11 +103,9 @@ def processar_arquivos():
                     col_desc = next((c for c in df.columns if 'desc' in c), None)
                     
                     if col_desc:
-                        # Filtra apenas linhas relevantes
                         filtro = df[col_desc].str.contains('EVENTO|SINISTRO|DESPESA', case=False, na=False)
                         df = df[filtro]
                     
-                    # Adiciona as colunas de tempo
                     df['ano'] = ano
                     df['trimestre'] = trimestre
                     
@@ -128,7 +145,7 @@ def processar_arquivos():
 
     for col_old, col_new in colunas_finais.items():
         if col_old not in df_final.columns:
-            df_final[col_new] = None # Placeholder
+            df_final[col_new] = None 
         else:
             df_final.rename(columns={col_old: col_new}, inplace=True)
 

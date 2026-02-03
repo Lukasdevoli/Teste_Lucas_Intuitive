@@ -29,13 +29,21 @@ pip install flask flask-cors pandas requests beautifulsoup4 openpyxl
 
 Execute os scripts **na ordem abaixo** para baixar, processar e carregar os dados.
 
-### Coleta e Processamento Inicial
+### Coleta de Dados
+
+```bash
+python src/scraper.py
+```
+
+> Baixa as demonstrações contábeis dos últimos 3 trimestres disponíveis no FTP da ANS.
+
+### Processamento Inicial
 
 ```bash
 python src/processor.py
 ```
 
-> Baixa e extrai os dados trimestrais, gerando o arquivo `consolidado.csv`.
+> Extrai os arquivos ZIP, localiza os CSVs de "Eventos/Sinistros" e normaliza as colunas gerando o `consolidado.csv`.
 
 ---
 
